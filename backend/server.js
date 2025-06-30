@@ -1,50 +1,41 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient } = require("mongodb");
+const mongoose = require("mongoose");
 require('dotenv').config();
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
 
-// --- Conexão com o Banco de Dados e Inicialização do Servidor ---
+// --- Conexão com o Banco de Dados (usando Mongoose) ---
 const uri = process.env.MONGO_URI;
 if (!uri) {
     console.error("❌ Erro: A variável MONGO_URI não está definida no arquivo .env");
     process.exit(1);
 }
-const client = new MongoClient(uri);
 
-async function startServer() {
-    try {
-        // 1. Conecta ao banco de dados
-        await client.connect();
-        const db = client.db("meuBanco");
-        console.log("✅ Conectado ao MongoDB com sucesso!");
+mongoose.connect(uri)
+  .then(() => {
+    console.log("✅ Conectado ao MongoDB com sucesso via Mongoose!");
+  })
+  .catch(err => {
+    console.error("❌ Falha ao conectar ao MongoDB", err);
+    process.exit(1);
+  });
 
-        // 2. Disponibiliza as coleções para todas as rotas da aplicação
-        app.locals.resultsCollection = db.collection("results");
-        
 
-        // 3. Configura as rotas DEPOIS que a conexão está estabelecida
-        const authRoutes = require('./routes/auth');
+// --- Rotas da Aplicação ---
+const authRoutes = require('./routes/auth');
+const carbonRoutes = require('./routes/carbon');
 
-        app.use('/auth', authRoutes); // Rotas de autenticação (ex: /auth/login)
+app.use('/api/auth', authRoutes);
+app.use('/api/carbon', carbonRoutes);
 
-        // 4. Inicia o servidor para ouvir as requisições
-        app.listen(port, () => {
-            console.log(`🚀 Servidor rodando em http://localhost:${port}`);
-        });
 
-    } catch (e) {
-        console.error("❌ Falha fatal ao conectar ao MongoDB ou iniciar o servidor.", e);
-        await client.close(); // Garante que a conexão seja fechada em caso de erro
-        process.exit(1);
-    }
-}
-
-// Inicia todo o processo
-startServer();
+// --- Inicialização do Servidor ---
+app.listen(port, () => {
+    console.log(`🚀 Servidor rodando em http://localhost:${port}`);
+});

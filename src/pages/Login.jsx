@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { Mail, Lock, Eye, EyeOff, Leaf } from 'lucide-react';
@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/components/ui/use-toast';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -19,38 +18,13 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   
   const { login } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    try {
-      const result = login(formData.email, formData.password);
-      
-      if (result.success) {
-        toast({
-          title: "Login realizado com sucesso!",
-          description: "Bem-vindo de volta ao EcoTracker.",
-        });
-        navigate('/dashboard');
-      } else {
-        toast({
-          title: "Erro no login",
-          description: result.error,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Erro no login",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+    // Agora esperamos a função login terminar antes de continuar
+    await login({ email: formData.email, password: formData.password });
+    setLoading(false);
   };
 
   const handleChange = (e) => {
@@ -66,7 +40,6 @@ const Login = () => {
         <title>Login - EcoTracker</title>
         <meta name="description" content="Faça login na sua conta EcoTracker e continue monitorando sua pegada de carbono." />
       </Helmet>
-
       <div className="min-h-screen pt-20 flex items-center justify-center px-4 aurora-bg">
         <div className="w-full max-w-md">
           <motion.div
@@ -83,16 +56,13 @@ const Login = () => {
                 >
                   <Leaf className="h-10 w-10 text-white" />
                 </motion.div>
-                
                 <CardTitle className="text-3xl font-bold gradient-text">
                   Entrar na sua conta
                 </CardTitle>
-                
                 <p className="text-muted-foreground">
                   Continue sua jornada sustentável.
                 </p>
               </CardHeader>
-
               <CardContent className="p-8 pt-0">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
@@ -113,7 +83,6 @@ const Login = () => {
                       />
                     </div>
                   </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="password" className="text-foreground">
                       Senha
@@ -139,7 +108,6 @@ const Login = () => {
                       </button>
                     </div>
                   </div>
-
                   <Button
                     type="submit"
                     disabled={loading}
@@ -149,7 +117,6 @@ const Login = () => {
                     {loading ? 'Entrando...' : 'Entrar'}
                   </Button>
                 </form>
-
                 <div className="mt-6 text-center">
                   <p className="text-muted-foreground">
                     Não tem uma conta?{' '}

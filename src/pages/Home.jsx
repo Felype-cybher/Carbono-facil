@@ -5,8 +5,10 @@ import { Helmet } from 'react-helmet';
 import { Leaf, BarChart3, Users, Target, ArrowRight, Calculator, Globe, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Home = () => {
+  const { user } = useAuth();
   const features = [
     {
       icon: Calculator,
@@ -76,30 +78,32 @@ const Home = () => {
                     <Leaf className="h-4 w-4" />
                     <span>Sustentabilidade em Ação</span>
                   </motion.div>
-                  
+
                   <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight">
                     Monitore sua{' '}
                     <span className="gradient-text">Pegada de Carbono</span>
                   </h1>
-                  
+
                   <p className="text-xl text-muted-foreground leading-relaxed">
                     Descubra como suas ações diárias impactam o meio ambiente e encontre maneiras inteligentes de reduzir sua pegada de carbono com nossa plataforma avançada.
                   </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Link to="/register">
+                  <Link to={user ? "/dashboard" : "/register"}>
                     <Button size="lg" className="eco-gradient hover:scale-105 transition-transform duration-200 group shadow-lg shadow-primary/20">
-                      Começar Agora
+                      {user ? "Ir para o Dashboard" : "Começar Agora"}
                       <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
-                  
-                  <Link to="/login">
-                    <Button variant="outline" size="lg" className="border-primary/50 text-primary-foreground hover:bg-primary/10">
-                      Já tenho conta
-                    </Button>
-                  </Link>
+
+                  {!user && (
+                    <Link to="/login">
+                      <Button variant="outline" size="lg" className="border-primary/50 text-primary-foreground hover:bg-primary/10">
+                        Já tenho conta
+                      </Button>
+                    </Link>
+                  )}
                 </div>
 
                 <div className="flex items-center space-x-8 text-sm text-muted-foreground">
@@ -121,10 +125,10 @@ const Home = () => {
                 className="relative"
               >
                 <div className="relative z-10">
-                  <img 
+                  <img
                     alt="Visualização 3D de um ecossistema digital em um globo"
                     className="w-full h-auto rounded-2xl shadow-2xl floating-animation"
-                   src="https://images.unsplash.com/photo-1576403103737-dc646cbf7de5" />
+                    src="https://images.unsplash.com/photo-1576403103737-dc646cbf7de5" />
                 </div>
               </motion.div>
             </div>
@@ -233,7 +237,7 @@ const Home = () => {
               <h2 className="text-4xl lg:text-5xl font-bold tracking-tight">
                 Pronto para fazer a <span className="gradient-text">diferença</span>?
               </h2>
-              
+
               <p className="text-xl text-muted-foreground">
                 Junte-se a milhares de pessoas que já estão monitorando e reduzindo sua pegada de carbono.
               </p>

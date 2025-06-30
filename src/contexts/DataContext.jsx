@@ -1,116 +1,80 @@
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import axios from 'axios';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-const DataContext = createContext();
+export const DataContext = createContext();
 
-export const useData = () => {
-  const context = useContext(DataContext);
-  if (!context) {
-    throw new Error('useData deve ser usado dentro de um DataProvider');
-  }
-  return context;
-};
+// Adicionamos a exportação do hook para facilitar o uso
+export const useData = () => useContext(DataContext);
 
 export const DataProvider = ({ children }) => {
-  const { user } = useAuth();
   const [carbonData, setCarbonData] = useState([]);
-  const [globalData, setGlobalData] = useState([]);
-  const [feedbacks, setFeedbacks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Em vez de pegar o token do AuthContext, lemos ele do localStorage.
+  // Isso nos dá o valor mais recente sempre que a função for chamada.
+  const getToken = () => localStorage.getItem('token');
 
-  useEffect(() => {
-    if (user) {
-      loadUserData();
+  const fetchData = useCallback(async () => {
+    const token = getToken(); // Pega o token no momento da execução
+    if (!token) {
+      setCarbonData([]); // Limpa os dados se não houver token
+      setLoading(false);
+      return;
+    };
+
+    setLoading(true);
+    setError(null);
+    try {
+      // Configura o cabeçalho de autorização para esta chamada específica
+      const response = await axios.get(`${API_URL}/carbon`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCarbonData(response.data);
+    } catch (err) {
+      setError('Falha ao buscar os dados.');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    loadGlobalData();
-    loadFeedbacks();
-  }, [user]);
+  }, []); // O array de dependências agora está vazio
 
-  const loadUserData = () => {
-    const data = JSON.parse(localStorage.getItem(`carbon_data_${user.id}`) || '[]');
-    setCarbonData(data);
-  };
+  // O useEffect agora só roda uma vez quando o componente é montado.
+  // A função fetchData será chamada sempre que for necessária.
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const loadGlobalData = () => {
-    const data = JSON.parse(localStorage.getItem('global_carbon_data') || '[]');
-    setGlobalData(data);
-  };
+  const addCarbonData = async (newData) => {
+    const token = getToken();
+    if (!token) {
+        setError('Você precisa estar logado para salvar os dados.');
+        return null;
+    }
 
-  const loadFeedbacks = () => {
-    const data = JSON.parse(localStorage.getItem('ecotracker_feedbacks') || '[]');
-    setFeedbacks(data);
-  };
-
-  const saveCarbonCalculation = (calculation) => {
-    if (!user) return;
-
-    const newCalculation = {
-      id: Date.now().toString(),
-      userId: user.id,
-      ...calculation,
-      date: new Date().toISOString()
-    };
-
-    const updatedData = [...carbonData, newCalculation];
-    setCarbonData(updatedData);
-    localStorage.setItem(`carbon_data_${user.id}`, JSON.stringify(updatedData));
-
-    // Atualizar dados globais
-    const globalData = JSON.parse(localStorage.getItem('global_carbon_data') || '[]');
-    globalData.push(newCalculation);
-    localStorage.setItem('global_carbon_data', JSON.stringify(globalData));
-    setGlobalData(globalData);
-  };
-
-  const saveFeedback = (feedback) => {
-    if (!user) return;
-
-    const newFeedback = {
-      id: Date.now().toString(),
-      userId: user.id,
-      userName: user.name,
-      ...feedback,
-      date: new Date().toISOString()
-    };
-
-    const updatedFeedbacks = [...feedbacks, newFeedback];
-    setFeedbacks(updatedFeedbacks);
-    localStorage.setItem('ecotracker_feedbacks', JSON.stringify(updatedFeedbacks));
-  };
-
-  const getAggregatedData = () => {
-    const monthlyData = {};
-    const categoryData = {};
-
-    globalData.forEach(item => {
-      const month = new Date(item.date).toLocaleDateString('pt-BR', { 
-        year: 'numeric', 
-        month: 'short' 
+    try {
+      // Adiciona o cabeçalho de autorização para a chamada POST
+      const response = await axios.post(`${API_URL}/carbon`, newData, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-
-      if (!monthlyData[month]) {
-        monthlyData[month] = 0;
-      }
-      monthlyData[month] += item.totalFootprint;
-
-      Object.keys(item.categories).forEach(category => {
-        if (!categoryData[category]) {
-          categoryData[category] = 0;
-        }
-        categoryData[category] += item.categories[category];
-      });
-    });
-
-    return { monthlyData, categoryData };
+      // Atualiza os dados locais para refletir a mudança imediatamente
+      setCarbonData(prevData => [response.data, ...prevData]);
+      return response.data;
+    } catch (err) {
+      setError('Falha ao salvar os dados.');
+      console.error(err);
+      return null;
+    }
   };
-
+  
   const value = {
     carbonData,
-    globalData,
-    feedbacks,
-    saveCarbonCalculation,
-    saveFeedback,
-    getAggregatedData
+    loading,
+    error,
+    fetchData, // Exportamos a função para poder recarregar os dados de outras páginas se necessário
+    addCarbonData,
   };
 
   return (

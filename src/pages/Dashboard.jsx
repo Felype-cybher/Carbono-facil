@@ -1,215 +1,194 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
-import { BarChart3, Calculator, TrendingDown, Leaf, Users, Target } from 'lucide-react';
+import { GaugeCircle, BarChart, FileText, Target, Calendar, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { carbonData, globalData } = useData();
+  const { carbonData, loading } = useData();
 
-  const userTotal = carbonData.reduce((sum, item) => sum + item.totalFootprint, 0);
-  const userAverage = carbonData.length > 0 ? userTotal / carbonData.length : 0;
-  const globalAverage = globalData.length > 0 ? 
-    globalData.reduce((sum, item) => sum + item.totalFootprint, 0) / globalData.length : 0;
+  // Enquanto os dados estiverem carregando, exibe um indicador. Isso previne a tela branca.
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
-  const stats = [
-    {
-      title: 'Pegada Total',
-      value: `${userTotal.toFixed(1)} kg CO₂`,
-      icon: Leaf,
-      color: 'text-green-400',
-      bgColor: 'bg-green-500/10'
-    },
-    {
-      title: 'Média Mensal',
-      value: `${userAverage.toFixed(1)} kg CO₂`,
-      icon: TrendingDown,
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-500/10'
-    },
-    {
-      title: 'Cálculos Feitos',
-      value: carbonData.length,
-      icon: Calculator,
-      color: 'text-purple-400',
-      bgColor: 'bg-purple-500/10'
-    },
-    {
-      title: 'Vs. Média Global',
-      value: userAverage < globalAverage ? 'Abaixo' : 'Acima',
-      icon: Users,
-      color: userAverage < globalAverage ? 'text-green-400' : 'text-orange-400',
-      bgColor: userAverage < globalAverage ? 'bg-green-500/10' : 'bg-orange-500/10'
-    }
-  ];
-
-  const quickActions = [
-    {
-      title: 'Nova Calculadora',
-      description: 'Calcule sua pegada de carbono atual',
-      icon: Calculator,
-      link: '/calculator',
-      color: 'eco-gradient'
-    },
-    {
-      title: 'Ver Análises',
-      description: 'Visualize seus dados em gráficos',
-      icon: BarChart3,
-      link: '/analytics',
-      color: 'bg-gradient-to-r from-blue-500 to-purple-500'
-    },
-    {
-      title: 'Dar Feedback',
-      description: 'Compartilhe sua experiência',
-      icon: Target,
-      link: '/feedback',
-      color: 'bg-gradient-to-r from-purple-500 to-pink-500'
-    }
-  ];
+  const hasData = carbonData && carbonData.length > 0;
+  
+  // Calcula as estatísticas apenas se houver dados
+  const lastCalculation = hasData ? carbonData[0] : null;
+  const averageFootprint = hasData 
+    ? carbonData.reduce((acc, item) => acc + item.totalFootprint, 0) / carbonData.length 
+    : 0;
+  const calculationCount = carbonData.length;
 
   return (
     <>
       <Helmet>
         <title>Dashboard - EcoTracker</title>
-        <meta name="description" content="Acompanhe sua pegada de carbono e veja estatísticas detalhadas no seu dashboard pessoal." />
+        <meta name="description" content="Seu painel de controle pessoal para monitorar e analisar sua pegada de carbono." />
       </Helmet>
 
       <div className="min-h-screen pt-20 px-4 py-8 aurora-bg">
-        <div className="max-w-7xl mx-auto space-y-12">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-2"
-          >
-            <h1 className="text-4xl lg:text-5xl font-bold tracking-tight">
-              Olá, <span className="gradient-text">{user?.name}</span>! 👋
+        <div className="max-w-7xl mx-auto space-y-8">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+            <h1 className="text-4xl font-bold tracking-tight">
+              Olá, <span className="gradient-text">{user?.name || 'Usuário'}</span>!
             </h1>
             <p className="text-muted-foreground text-lg">
-              Aqui está um resumo da sua jornada sustentável.
+              Bem-vindo ao seu painel de sustentabilidade.
             </p>
           </motion.div>
+          
+          {/* Se não houver dados, mostra uma mensagem de boas-vindas */}
+          {!hasData ? (
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+              <Card className="professional-card text-center p-8">
+                <CardHeader>
+                  <Target className="mx-auto h-16 w-16 text-primary" />
+                  <CardTitle className="mt-4">Comece sua jornada</CardTitle>
+                  <CardDescription>
+                    Você ainda não fez nenhum cálculo. Use nossa calculadora para descobrir sua pegada de carbono e começar a monitorar seu progresso.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link to="/calculator">
+                    <Button size="lg" className="eco-gradient hover:scale-105 transition-transform duration-200">
+                      Ir para a Calculadora
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ) : (
+            // Se houver dados, mostra as estatísticas
+            <>
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ staggerChildren: 0.1 }}
+              >
+                <DashboardCard 
+                  icon={GaugeCircle} 
+                  title="Última Pegada" 
+                  value={`${lastCalculation.totalFootprint.toFixed(1)} kg CO₂`} 
+                  description="Seu cálculo mais recente" 
+                />
+                <DashboardCard 
+                  icon={BarChart} 
+                  title="Média Mensal" 
+                  value={`${averageFootprint.toFixed(1)} kg CO₂`} 
+                  description="Média de todas as suas medições" 
+                />
+                <DashboardCard 
+                  icon={FileText} 
+                  title="Cálculos Feitos" 
+                  value={calculationCount} 
+                  description="Total de registros salvos" 
+                />
+              </motion.div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((stat, index) => {
-              const Icon = stat.icon;
-              return (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="lg:col-span-2"
                 >
-                  <Card className="professional-card hover:-translate-y-1 transition-transform duration-300">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-2">
-                          <p className="text-muted-foreground text-sm font-medium">{stat.title}</p>
-                          <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-                        </div>
-                        <div className={`p-4 rounded-xl ${stat.bgColor}`}>
-                          <Icon className={`h-7 w-7 ${stat.color}`} />
-                        </div>
-                      </div>
+                  <Card className="professional-card h-full">
+                    <CardHeader>
+                      <CardTitle>Ações Rápidas</CardTitle>
+                      <CardDescription>Acesse as principais ferramentas com um clique.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Link to="/calculator">
+                        <Button variant="outline" className="w-full justify-start p-6 text-left h-auto">
+                          <div className="flex items-center">
+                            <div className="p-3 bg-primary/10 rounded-lg mr-4">
+                              <Target className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-semibold">Nova Medição</p>
+                              <p className="text-sm text-muted-foreground">Calcule sua pegada atual.</p>
+                            </div>
+                          </div>
+                        </Button>
+                      </Link>
+                       <Link to="/analytics">
+                        <Button variant="outline" className="w-full justify-start p-6 text-left h-auto">
+                           <div className="flex items-center">
+                             <div className="p-3 bg-primary/10 rounded-lg mr-4">
+                               <BarChart className="h-6 w-6 text-primary" />
+                             </div>
+                             <div>
+                               <p className="font-semibold">Ver Análises</p>
+                               <p className="text-sm text-muted-foreground">Acompanhe seu progresso.</p>
+                             </div>
+                           </div>
+                         </Button>
+                      </Link>
                     </CardContent>
                   </Card>
                 </motion.div>
-              );
-            })}
-          </div>
-
-          {/* Quick Actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="space-y-6"
-          >
-            <h2 className="text-3xl font-bold text-foreground">Ações Rápidas</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {quickActions.map((action, index) => {
-                const Icon = action.icon;
-                return (
-                  <Link key={index} to={action.link}>
-                    <motion.div
-                      whileHover={{ scale: 1.03 }}
-                      className="professional-card h-full cursor-pointer group"
-                    >
-                      <CardContent className="p-8 text-center space-y-4">
-                        <div className={`mx-auto w-20 h-20 ${action.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                          <Icon className="h-10 w-10 text-white" />
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                >
+                  <Card className="professional-card h-full">
+                     <CardHeader>
+                       <CardTitle>Último Registro</CardTitle>
+                       <CardDescription>Detalhes da sua última medição.</CardDescription>
+                     </CardHeader>
+                     <CardContent>
+                        <div className="flex items-center text-muted-foreground">
+                            <Calendar className="h-5 w-5 mr-3"/>
+                            <span>{new Date(lastCalculation.date).toLocaleDateString('pt-BR')}</span>
                         </div>
-                        <div className="space-y-2">
-                          <h3 className="text-xl font-semibold text-foreground">{action.title}</h3>
-                          <p className="text-muted-foreground">{action.description}</p>
+                        <div className="mt-4 space-y-2">
+                           {Object.entries(lastCalculation.categories).map(([key, value]) => (
+                               <div key={key} className="flex justify-between text-sm">
+                                   <span className="capitalize">{key}</span>
+                                   <span className="font-medium">{value.toFixed(1)} kg CO₂</span>
+                               </div>
+                           ))}
                         </div>
-                      </CardContent>
-                    </motion.div>
-                  </Link>
-                );
-              })}
-            </div>
-          </motion.div>
-
-          {/* Recent Activity */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="space-y-6"
-          >
-            <h2 className="text-3xl font-bold text-foreground">Atividade Recente</h2>
-            
-            <Card className="professional-card">
-              <CardHeader>
-                <CardTitle className="text-foreground">Últimos Cálculos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {carbonData.length > 0 ? (
-                  <div className="space-y-4">
-                    {carbonData.slice(-3).reverse().map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg">
-                        <div className="space-y-1">
-                          <p className="text-foreground font-medium">
-                            {new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            Pegada calculada
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-primary font-bold text-lg">
-                            {item.totalFootprint.toFixed(1)} kg CO₂
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Calculator className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground text-lg">Nenhum cálculo realizado ainda.</p>
-                    <Link to="/calculator">
-                      <Button className="mt-6 eco-gradient shadow-lg shadow-primary/20">
-                        Fazer Primeiro Cálculo
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+                     </CardContent>
+                  </Card>
+                </motion.div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>
   );
 };
+
+// Componente auxiliar para os cards de estatísticas
+const DashboardCard = ({ icon: Icon, title, value, description }) => (
+  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+    <Card className="professional-card">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <Icon className="h-5 w-5 text-primary" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold">{value}</div>
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+      </CardContent>
+    </Card>
+  </motion.div>
+);
 
 export default Dashboard;
