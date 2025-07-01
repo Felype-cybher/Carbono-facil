@@ -2,16 +2,16 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { useData } from '@/contexts/DataContext';
-import { BarChart as BarChartIcon, TrendingUp, Target, ArrowRight, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
+// Adicionado 'LabelList' à importação de recharts
+import { BarChart as BarChartIcon, LineChart as LineChartIcon, PieChart as PieChartIcon, ArrowRight, Target, Globe } from 'lucide-react';
+import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Line, Pie, PieChart, LineChart, LabelList } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 const Analytics = () => {
-  const { carbonData, loading } = useData();
+  const { carbonData, communityStats, loading } = useData();
 
-  // 1. Enquanto os dados carregam, mostra um indicador
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -22,7 +22,6 @@ const Analytics = () => {
 
   const hasData = carbonData && carbonData.length > 0;
 
-  // 2. Se não houver dados, mostra uma mensagem amigável
   if (!hasData) {
     return (
       <div className="min-h-screen pt-20 flex items-center justify-center px-4 aurora-bg">
@@ -48,8 +47,14 @@ const Analytics = () => {
       </div>
     );
   }
+  
+  const userAverage = carbonData.reduce((acc, item) => acc + item.totalFootprint, 0) / carbonData.length;
 
-  // 3. Somente se houver dados, prossegue com os cálculos
+  const comparisonData = [
+    { name: 'Sua Média', valor: userAverage, fill: '#8884d8' },
+    { name: 'Média da Comunidade', valor: communityStats.averageFootprint, fill: '#82ca9d' }
+  ];
+
   const formattedData = carbonData.map(d => ({
     date: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
     total: d.totalFootprint,
@@ -57,42 +62,62 @@ const Analytics = () => {
   })).reverse();
 
   const categoryDistribution = Object.keys(carbonData[0].categories).map(key => {
-    const nomes = {
-      transport: 'Transporte',
-      energy: 'Energia',
-      food: 'Alimentação',
-      consumption: 'Consumo'
-    };
+    const nomes = { transport: 'Transporte', energy: 'Energia', food: 'Alimentação', consumption: 'Consumo' };
     return {
       name: nomes[key] || key,
       value: carbonData.reduce((acc, item) => acc + item.categories[key], 0)
     };
   });
-
+  
   const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6'];
 
   return (
     <>
       <Helmet>
         <title>Análises - EcoTracker</title>
-        <meta name="description" content="Analise seu progresso de sustentabilidade com gráficos interativos." />
+        <meta name="description" content="Analise seu progresso e compare com a comunidade." />
       </Helmet>
-
       <div className="min-h-screen pt-20 px-4 py-8 aurora-bg">
         <div className="max-w-7xl mx-auto space-y-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-2">
-            <h1 className="text-4xl font-bold tracking-tight">
-              <span className="gradient-text">Suas Análises</span>
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Visualize seu progresso e entenda seu impacto.
-            </p>
+            <h1 className="text-4xl font-bold tracking-tight"><span className="gradient-text">Suas Análises</span></h1>
+            <p className="text-muted-foreground text-lg">Visualize seu progresso e entenda seu impacto.</p>
           </motion.div>
-
+          
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <Card className="professional-card">
+              <CardHeader>
+                <CardTitle className="flex items-center"><Globe className="mr-2 text-primary"/>Comparação com a Comunidade</CardTitle>
+                <CardDescription>Veja como sua pegada de carbono se compara com a média de todos os usuários.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={comparisonData} layout="vertical" margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <XAxis type="number" hide />
+                    <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} width={150} />
+                    <Tooltip cursor={{fill: 'rgba(255, 255, 255, 0.1)'}}/>
+                    <Bar dataKey="valor" barSize={40} radius={[0, 4, 4, 0]}>
+                       {/* AQUI ESTÁ A MUDANÇA: adiciona os números nas barras */}
+                       <LabelList 
+                         dataKey="valor" 
+                         position="right" 
+                         formatter={(value) => `${value.toFixed(1)} kg`}
+                         className="fill-foreground font-semibold"
+                       />
+                       {comparisonData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                       ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </motion.div>
+          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="professional-card">
               <CardHeader>
-                <CardTitle className="flex items-center"><LineChartIcon className="mr-2 text-primary" />Evolução da Pegada</CardTitle>
+                <CardTitle className="flex items-center"><LineChartIcon className="mr-2 text-primary"/>Evolução da Pegada</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -108,19 +133,19 @@ const Analytics = () => {
             </Card>
             <Card className="professional-card">
               <CardHeader>
-                <CardTitle className="flex items-center"><PieChartIcon className="mr-2 text-primary" />Distribuição por Categoria</CardTitle>
+                <CardTitle className="flex items-center"><PieChartIcon className="mr-2 text-primary"/>Distribuição por Categoria</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie data={categoryDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
-                      {categoryDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
+                    <PieChart>
+                        <Pie data={categoryDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
+                           {categoryDistribution.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                           ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                    </PieChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>

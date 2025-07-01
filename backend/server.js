@@ -31,6 +31,7 @@ mongoose.connect(uri)
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/carbon', require('./routes/carbon'));
 app.use('/api/feedback', require('./routes/feedback'));
+app.use('/api/community', require('./routes/community'));
 
 
 // --- Inicialização do Servidor ---

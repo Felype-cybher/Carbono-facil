@@ -15,6 +15,7 @@ export const useData = () => {
 
 export const DataProvider = ({ children }) => {
   const [carbonData, setCarbonData] = useState([]);
+  const [communityStats, setCommunityStats] = useState({ averageFootprint: 0, totalCalculations: 0 }); // Novo estado para os dados da comunidade
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -29,10 +30,15 @@ export const DataProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_URL}/carbon`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setCarbonData(response.data);
+      // Faz as duas chamadas à API em paralelo para ser mais rápido
+      const [userResponse, communityResponse] = await Promise.all([
+        axios.get(`${API_URL}/carbon`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_URL}/community/stats`)
+      ]);
+      
+      setCarbonData(userResponse.data);
+      setCommunityStats(communityResponse.data);
+
     } catch (err) {
       setError('Falha ao buscar os dados.');
       console.error(err);
@@ -56,7 +62,8 @@ export const DataProvider = ({ children }) => {
       const response = await axios.post(`${API_URL}/carbon`, newData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchData(); // Recarrega os dados após salvar um novo
+      // Após salvar um novo cálculo, recarrega TODOS os dados (do usuário e da comunidade)
+      fetchData(); 
       return response.data;
     } catch (err) {
       setError('Falha ao salvar os dados.');
@@ -67,6 +74,7 @@ export const DataProvider = ({ children }) => {
 
   const value = {
     carbonData,
+    communityStats, // Exporta os novos dados
     loading,
     error,
     addCarbonData,
