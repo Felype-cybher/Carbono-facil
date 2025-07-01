@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
-import { Car, Home, Utensils, ShoppingBag, Calculator as CalcIcon, Leaf } from 'lucide-react';
+import { Car, Home, Utensils, ShoppingBag, Calculator as CalcIcon, Leaf, Trash2 } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,8 @@ import { useToast } from '@/components/ui/use-toast';
 const Calculator = () => {
   const [formData, setFormData] = useState({
     transport: { carKm: [0], publicTransport: [0], flights: [0] },
-    energy: { electricity: [100], gas: [50], heating: [30] },
-    food: { meat: [3], dairy: [2], vegetables: [5] },
+    energy: { electricity: [100], gas: [1], airConditioning: [0] },
+    food: { meat: [3], dairy: [2], foodWaste: [2] }, 
     consumption: { shopping: [2], waste: [1], recycling: [3] }
   });
 
@@ -22,17 +22,41 @@ const Calculator = () => {
   const { toast } = useToast();
 
   const categories = [
-    { key: 'transport', title: 'Transporte', icon: Car, color: 'text-blue-400', bgColor: 'bg-blue-500/20', fields: [ { key: 'carKm', label: 'Km de carro por semana', max: 500, unit: 'km' }, { key: 'publicTransport', label: 'Viagens de transporte público por semana', max: 20, unit: 'viagens' }, { key: 'flights', label: 'Voos por ano', max: 10, unit: 'voos' } ] },
-    { key: 'energy', title: 'Energia', icon: Home, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', fields: [ { key: 'electricity', label: 'Consumo de eletricidade mensal', max: 500, unit: 'kWh' }, { key: 'gas', label: 'Consumo de gás mensal', max: 200, unit: 'm³' }, { key: 'heating', label: 'Aquecimento mensal', max: 100, unit: 'unidades' } ] },
-    { key: 'food', title: 'Alimentação', icon: Utensils, color: 'text-green-400', bgColor: 'bg-green-500/20', fields: [ { key: 'meat', label: 'Refeições com carne por semana', max: 14, unit: 'refeições' }, { key: 'dairy', label: 'Porções de laticínios por dia', max: 5, unit: 'porções' }, { key: 'vegetables', label: 'Porções de vegetais por dia', max: 10, unit: 'porções' } ] },
-    { key: 'consumption', title: 'Consumo', icon: ShoppingBag, color: 'text-purple-400', bgColor: 'bg-purple-500/20', fields: [ { key: 'shopping', label: 'Compras não essenciais por mês', max: 10, unit: 'vezes' }, { key: 'waste', label: 'Sacos de lixo por semana', max: 5, unit: 'sacos' }, { key: 'recycling', label: 'Nível de reciclagem (1-5)', max: 5, unit: 'nível' } ] }
+    { key: 'transport', title: 'Transporte', icon: Car, color: 'text-blue-400', bgColor: 'bg-blue-500/20', fields: [ { key: 'carKm', label: 'Quantos km você dirige por semana?', max: 500, unit: 'km' }, { key: 'publicTransport', label: 'Viagens de transporte público por semana', max: 20, unit: 'viagens' }, { key: 'flights', label: 'Voos de avião por ano', max: 10, unit: 'voos' } ] },
+    { key: 'energy', title: 'Energia em Casa', icon: Home, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', fields: [ { key: 'electricity', label: 'Qual o valor aproximado da sua conta de luz?', max: 500, unit: 'R$' }, { key: 'gas', label: 'Quantos botijões de gás você usa por mês?', max: 5, unit: 'botijões' }, { key: 'airConditioning', label: 'Uso de ar-condicionado (horas por dia)', max: 24, unit: 'horas' } ] },
+    { 
+      key: 'food', 
+      title: 'Alimentação', 
+      icon: Utensils, 
+      color: 'text-green-400', 
+      bgColor: 'bg-green-500/20', 
+      fields: [ 
+        { key: 'meat', label: 'Refeições com carne vermelha por semana', max: 21, unit: 'refeições' }, 
+        { key: 'dairy', label: 'Consumo de laticínios (leite, queijo, etc)', max: 5, unit: 'vezes ao dia' }, 
+        // Adicionada a propriedade 'description' para explicação
+        { key: 'foodWaste', label: 'Com que frequência você joga comida fora?', max: 5, unit: 'nível (1-5)', description: { min: 'Raramente', max: 'Com frequência' } } 
+      ] 
+    },
+    { 
+      key: 'consumption', 
+      title: 'Seu Consumo', 
+      icon: ShoppingBag, 
+      color: 'text-purple-400', 
+      bgColor: 'bg-purple-500/20', 
+      fields: [ 
+        { key: 'shopping', label: 'Compras de roupas e eletrônicos por mês', max: 20, unit: 'itens' }, 
+        { key: 'waste', label: 'Sacos de lixo produzidos por semana', max: 10, unit: 'sacos' }, 
+        // Adicionada a propriedade 'description' para explicação
+        { key: 'recycling', label: 'Qual seu nível de reciclagem?', max: 5, unit: 'nível (1-5)', description: { min: 'Não reciclo', max: 'Reciclo tudo' } } 
+      ] 
+    }
   ];
 
   const calculateFootprint = async () => {
     const factors = {
-      transport: { carKm: 0.21, publicTransport: 0.05, flights: 500 },
-      energy: { electricity: 0.5, gas: 2.0, heating: 1.5 },
-      food: { meat: 6.0, dairy: 1.5, vegetables: -0.5 },
+      transport: { carKm: 0.21, publicTransport: 2.5, flights: 500 },
+      energy: { electricity: 0.2, gas: 15, airConditioning: 0.4 },
+      food: { meat: 6.0, dairy: 1.5, foodWaste: 2.5 },
       consumption: { shopping: 10, waste: 5, recycling: -2 }
     };
 
@@ -56,7 +80,7 @@ const Calculator = () => {
     const dataForBackend = {
       totalFootprint: Math.max(0, total),
       categories: categoryResults,
-      recommendations,
+      recommendations
     };
     
     setResult(dataForBackend);
@@ -80,8 +104,9 @@ const Calculator = () => {
   const generateRecommendations = (data) => {
     const recommendations = [];
     if (data.transport.carKm[0] > 100) recommendations.push("Considere usar mais transporte público ou bicicleta.");
-    if (data.energy.electricity[0] > 300) recommendations.push("Tente reduzir o consumo de energia desligando aparelhos não utilizados.");
-    if (data.food.meat[0] > 7) recommendations.push("Reduzir o consumo de carne vermelha pode diminuir sua pegada.");
+    if (data.energy.electricity[0] > 200) recommendations.push("Tente reduzir o consumo de energia desligando aparelhos não utilizados.");
+    if (data.food.meat[0] > 5) recommendations.push("Reduzir o consumo de carne vermelha pode diminuir significativamente sua pegada.");
+    if (data.food.foodWaste[0] > 3) recommendations.push("Planeje suas compras e refeições para evitar o desperdício de alimentos.");
     if (data.consumption.recycling[0] < 3) recommendations.push("Aumente seus esforços de reciclagem e compostagem.");
     if (recommendations.length === 0) recommendations.push("Parabéns! Você já tem hábitos muito sustentáveis!");
     return recommendations;
@@ -144,6 +169,13 @@ const Calculator = () => {
                               </span>
                             </div>
                             <Slider value={formData[category.key][field.key]} onValueChange={(value) => updateValue(category.key, field.key, value)} max={field.max} step={1} className="w-full" />
+                            {/* AQUI ESTÁ A MUDANÇA: adiciona a explicação se ela existir */}
+                            {field.description && (
+                              <div className="flex justify-between text-xs text-muted-foreground px-1">
+                                <span>{field.description.min}</span>
+                                <span>{field.description.max}</span>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </CardContent>

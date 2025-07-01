@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import axios from 'axios'; // Importe o axios
+
+const API_URL = 'http://localhost:3001/api';
 
 const Feedback = () => {
   const [rating, setRating] = useState(0);
@@ -17,7 +20,7 @@ const Feedback = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (rating === 0) {
       toast({ title: "Avaliação incompleta", description: "Por favor, selecione uma nota de 1 a 5 estrelas.", variant: "destructive" });
@@ -25,19 +28,20 @@ const Feedback = () => {
     }
     
     setLoading(true);
-    // Aqui você pode adicionar a lógica para enviar o feedback para o backend no futuro
-    console.log({
-      userId: user?.id,
-      rating,
-      comment
-    });
-    
-    setTimeout(() => {
-        toast({ title: "Feedback enviado!", description: "Obrigado por nos ajudar a melhorar!" });
-        setRating(0);
-        setComment('');
-        setLoading(false);
-    }, 1000);
+
+    try {
+      // Faz a chamada POST para a API de feedback
+      await axios.post(`${API_URL}/feedback`, { rating, comment });
+      
+      toast({ title: "Feedback enviado!", description: "Obrigado por nos ajudar a melhorar!" });
+      setRating(0);
+      setComment('');
+    } catch (error) {
+      console.error("Erro ao enviar feedback:", error);
+      toast({ title: "Erro", description: "Não foi possível enviar seu feedback. Tente novamente.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
   
   return (

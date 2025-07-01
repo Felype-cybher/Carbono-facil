@@ -109,9 +109,9 @@ const Home = () => {
               >
                 <div className="relative z-10">
                   <img 
-                    alt="Visualização 3D de um ecossistema digital em um globo"
+                    alt="Visualização de carbono"
                     className="w-full h-auto rounded-2xl shadow-2xl floating-animation"
-                   src="https://images.unsplash.com/photo-1576403103737-dc646cbf7de5" />
+                   src='carbono.jpg' />
                 </div>
               </motion.div>
             </div>

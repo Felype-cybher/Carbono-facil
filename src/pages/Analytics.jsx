@@ -2,15 +2,16 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { useData } from '@/contexts/DataContext';
-import { BarChart, LineChart, PieChart, TrendingUp, Target, ArrowRight } from 'lucide-react';
+import { BarChart as BarChartIcon, TrendingUp, Target, ArrowRight, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ResponsiveContainer, Bar, XAxis, YAxis, Tooltip, Legend, Line, Pie } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 const Analytics = () => {
   const { carbonData, loading } = useData();
 
+  // 1. Enquanto os dados carregam, mostra um indicador
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -21,56 +22,65 @@ const Analytics = () => {
 
   const hasData = carbonData && carbonData.length > 0;
 
+  // 2. Se não houver dados, mostra uma mensagem amigável
   if (!hasData) {
     return (
-        <div className="min-h-screen pt-20 flex items-center justify-center px-4 aurora-bg">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-              <Card className="professional-card text-center p-8">
-                <CardHeader>
-                  <BarChart className="mx-auto h-16 w-16 text-primary" />
-                  <CardTitle className="mt-4">Sem dados para analisar</CardTitle>
-                  <CardDescription>
-                    Faça seu primeiro cálculo na calculadora para que possamos gerar suas análises de progresso.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Link to="/calculator">
-                    <Button size="lg" className="eco-gradient hover:scale-105 transition-transform duration-200">
-                      Ir para a Calculadora
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </motion.div>
-        </div>
+      <div className="min-h-screen pt-20 flex items-center justify-center px-4 aurora-bg">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+          <Card className="professional-card text-center p-8">
+            <CardHeader>
+              <BarChartIcon className="mx-auto h-16 w-16 text-primary" />
+              <CardTitle className="mt-4">Sem dados para analisar</CardTitle>
+              <CardDescription>
+                Faça seu primeiro cálculo para que possamos gerar suas análises de progresso.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link to="/calculator">
+                <Button size="lg" className="eco-gradient hover:scale-105 transition-transform duration-200">
+                  Ir para a Calculadora
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
     );
   }
-  
-  // Preparação dos dados para os gráficos
+
+  // 3. Somente se houver dados, prossegue com os cálculos
   const formattedData = carbonData.map(d => ({
-    date: new Date(d.date).toLocaleDateString('pt-BR'),
+    date: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
     total: d.totalFootprint,
     ...d.categories
   })).reverse();
 
-  const categoryDistribution = Object.keys(carbonData[0].categories).map(key => ({
-      name: key.charAt(0).toUpperCase() + key.slice(1),
+  const categoryDistribution = Object.keys(carbonData[0].categories).map(key => {
+    const nomes = {
+      transport: 'Transporte',
+      energy: 'Energia',
+      food: 'Alimentação',
+      consumption: 'Consumo'
+    };
+    return {
+      name: nomes[key] || key,
       value: carbonData.reduce((acc, item) => acc + item.categories[key], 0)
-  }));
-  
-  const COLORS = ['#3b82f6', '#facc15', '#4ade80', '#a78bfa'];
+    };
+  });
+
+  const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6'];
 
   return (
     <>
       <Helmet>
         <title>Análises - EcoTracker</title>
-        <meta name="description" content="Analise seu progresso de sustentabilidade com gráficos interativos e insights detalhados sobre sua pegada de carbono." />
+        <meta name="description" content="Analise seu progresso de sustentabilidade com gráficos interativos." />
       </Helmet>
 
       <div className="min-h-screen pt-20 px-4 py-8 aurora-bg">
         <div className="max-w-7xl mx-auto space-y-8">
-           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-2">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-2">
             <h1 className="text-4xl font-bold tracking-tight">
               <span className="gradient-text">Suas Análises</span>
             </h1>
@@ -78,11 +88,11 @@ const Analytics = () => {
               Visualize seu progresso e entenda seu impacto.
             </p>
           </motion.div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="professional-card">
               <CardHeader>
-                <CardTitle className="flex items-center"><LineChart className="mr-2 text-primary"/>Evolução da Pegada de Carbono</CardTitle>
+                <CardTitle className="flex items-center"><LineChartIcon className="mr-2 text-primary" />Evolução da Pegada</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -91,26 +101,26 @@ const Analytics = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="total" stroke="#8884d8" activeDot={{ r: 8 }} />
+                    <Line type="monotone" dataKey="total" name="Total (kg CO₂)" stroke="#8884d8" activeDot={{ r: 8 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
             <Card className="professional-card">
               <CardHeader>
-                <CardTitle className="flex items-center"><PieChart className="mr-2 text-primary"/>Distribuição por Categoria</CardTitle>
+                <CardTitle className="flex items-center"><PieChartIcon className="mr-2 text-primary" />Distribuição por Categoria</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                        <Pie data={categoryDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
-                           {categoryDistribution.map((entry, index) => (
-                              <cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                           ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                    </PieChart>
+                  <PieChart>
+                    <Pie data={categoryDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
+                      {categoryDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>

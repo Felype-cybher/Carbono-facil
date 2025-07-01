@@ -31,8 +31,10 @@ mongoose.connect(uri)
 const authRoutes = require('./routes/auth');
 const carbonRoutes = require('./routes/carbon');
 
+
 app.use('/api/auth', authRoutes);
 app.use('/api/carbon', carbonRoutes);
+app.use('/api/feedback', require('./routes/feedback'));
 
 
 // --- Inicialização do Servidor ---
