@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
-import { Car, Home, Utensils, ShoppingBag, Calculator as CalcIcon, Leaf, Trash2 } from 'lucide-react';
+import { Car, Home, Utensils, ShoppingBag, Calculator as CalcIcon, Leaf, Sparkles } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/components/ui/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter
+} from "@/components/ui/alert-dialog";
 
 const Calculator = () => {
   const [formData, setFormData] = useState({
@@ -18,6 +27,9 @@ const Calculator = () => {
   });
 
   const [result, setResult] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [recommendations, setRecommendations] = useState([]);
+
   const { addCarbonData } = useData();
   const { toast } = useToast();
 
@@ -33,7 +45,6 @@ const Calculator = () => {
       fields: [ 
         { key: 'meat', label: 'Refeições com carne vermelha por semana', max: 21, unit: 'refeições' }, 
         { key: 'dairy', label: 'Consumo de laticínios (leite, queijo, etc)', max: 5, unit: 'vezes ao dia' }, 
-        // Adicionada a propriedade 'description' para explicação
         { key: 'foodWaste', label: 'Com que frequência você joga comida fora?', max: 5, unit: 'nível (1-5)', description: { min: 'Raramente', max: 'Com frequência' } } 
       ] 
     },
@@ -46,11 +57,45 @@ const Calculator = () => {
       fields: [ 
         { key: 'shopping', label: 'Compras de roupas e eletrônicos por mês', max: 20, unit: 'itens' }, 
         { key: 'waste', label: 'Sacos de lixo produzidos por semana', max: 10, unit: 'sacos' }, 
-        // Adicionada a propriedade 'description' para explicação
         { key: 'recycling', label: 'Qual seu nível de reciclagem?', max: 5, unit: 'nível (1-5)', description: { min: 'Não reciclo', max: 'Reciclo tudo' } } 
       ] 
     }
   ];
+
+  const getFootprintLevel = (value) => {
+    if (value < 50) return { level: 'Excelente', color: 'text-green-400', bg: 'eco-gradient' };
+    if (value < 100) return { level: 'Bom', color: 'text-blue-400', bg: 'bg-gradient-to-r from-blue-500 to-green-500' };
+    if (value < 200) return { level: 'Moderado', color: 'text-yellow-400', bg: 'warning-gradient' };
+    return { level: 'Alto', color: 'text-red-400', bg: 'danger-gradient' };
+  };
+
+  const generateRecommendations = (data, totalFootprint) => {
+    const recs = [];
+    const levelInfo = getFootprintLevel(totalFootprint);
+
+    // Recomendação geral baseada no nível total
+    if (levelInfo.level === 'Alto') {
+        recs.push("Sua pegada geral é alta. Foque nas categorias com maior impacto para obter melhores resultados.");
+    } else if (levelInfo.level === 'Moderado') {
+        recs.push("Sua pegada é moderada. Pequenas mudanças nos seus hábitos diários podem fazer uma grande diferença.");
+    }
+
+    // Recomendações específicas
+    if (data.transport.carKm[0] > 100) recs.push("No Transporte, considere usar mais transporte público ou bicicleta.");
+    if (data.energy.electricity[0] > 200) recs.push("Em Energia, tente reduzir o consumo desligando aparelhos não utilizados.");
+    if (data.food.meat[0] > 5) recs.push("Na Alimentação, reduzir o consumo de carne vermelha é uma das ações mais eficazes.");
+    if (data.food.foodWaste[0] > 3) recs.push("Planejar suas compras e refeições ajuda a evitar o desperdício de alimentos.");
+    if (data.consumption.recycling[0] < 3) recs.push("No Consumo, aumentar seus esforços de reciclagem é fundamental.");
+    
+    // Mensagem de parabéns SÓ se a pegada total for baixa E não houver dicas específicas
+    if (recs.length === 0 && (levelInfo.level === 'Excelente' || levelInfo.level === 'Bom')) {
+        recs.push("Parabéns! Seus hábitos são muito sustentáveis. Continue assim!");
+    } else if (recs.length === 0) {
+        recs.push("Seus hábitos parecem equilibrados, mas sempre há espaço para melhorar. Explore pequenas mudanças em cada categoria.");
+    }
+
+    return recs;
+  };
 
   const calculateFootprint = async () => {
     const factors = {
@@ -74,13 +119,14 @@ const Calculator = () => {
       total += categoryTotal;
     });
     
-    const recommendations = generateRecommendations(formData);
-    const footprintLevel = getFootprintLevel(Math.max(0, total));
+    const totalFootprint = Math.max(0, total);
+    const generatedRecs = generateRecommendations(formData, totalFootprint);
+    setRecommendations(generatedRecs);
 
     const dataForBackend = {
-      totalFootprint: Math.max(0, total),
+      totalFootprint: totalFootprint,
       categories: categoryResults,
-      recommendations
+      recommendations: generatedRecs
     };
     
     setResult(dataForBackend);
@@ -92,6 +138,7 @@ const Calculator = () => {
         title: "Cálculo salvo com sucesso!",
         description: `Sua pegada de carbono é ${dataForBackend.totalFootprint.toFixed(1)} kg CO₂`,
       });
+      setIsModalOpen(true); 
     } else {
       toast({
         title: "Erro ao salvar",
@@ -101,29 +148,11 @@ const Calculator = () => {
     }
   };
 
-  const generateRecommendations = (data) => {
-    const recommendations = [];
-    if (data.transport.carKm[0] > 100) recommendations.push("Considere usar mais transporte público ou bicicleta.");
-    if (data.energy.electricity[0] > 200) recommendations.push("Tente reduzir o consumo de energia desligando aparelhos não utilizados.");
-    if (data.food.meat[0] > 5) recommendations.push("Reduzir o consumo de carne vermelha pode diminuir significativamente sua pegada.");
-    if (data.food.foodWaste[0] > 3) recommendations.push("Planeje suas compras e refeições para evitar o desperdício de alimentos.");
-    if (data.consumption.recycling[0] < 3) recommendations.push("Aumente seus esforços de reciclagem e compostagem.");
-    if (recommendations.length === 0) recommendations.push("Parabéns! Você já tem hábitos muito sustentáveis!");
-    return recommendations;
-  };
-
   const updateValue = (category, field, value) => {
     setFormData(prev => ({
       ...prev,
       [category]: { ...prev[category], [field]: value }
     }));
-  };
-
-  const getFootprintLevel = (value) => {
-    if (value < 50) return { level: 'Excelente', color: 'text-green-400', bg: 'eco-gradient' };
-    if (value < 100) return { level: 'Bom', color: 'text-blue-400', bg: 'bg-gradient-to-r from-blue-500 to-green-500' };
-    if (value < 200) return { level: 'Moderado', color: 'text-yellow-400', bg: 'warning-gradient' };
-    return { level: 'Alto', color: 'text-red-400', bg: 'danger-gradient' };
   };
   
   return (
@@ -169,7 +198,6 @@ const Calculator = () => {
                               </span>
                             </div>
                             <Slider value={formData[category.key][field.key]} onValueChange={(value) => updateValue(category.key, field.key, value)} max={field.max} step={1} className="w-full" />
-                            {/* AQUI ESTÁ A MUDANÇA: adiciona a explicação se ela existir */}
                             {field.description && (
                               <div className="flex justify-between text-xs text-muted-foreground px-1">
                                 <span>{field.description.min}</span>
@@ -222,11 +250,17 @@ const Calculator = () => {
                       {Object.entries(result.categories).map(([key, value]) => {
                         const category = categories.find(c => c.key === key);
                         const Icon = category.icon;
+                        const nomesDasCategorias = {
+                          transport: 'Transporte',
+                          energy: 'Energia',
+                          food: 'Alimentação',
+                          consumption: 'Consumo'
+                        };
                         return (
                           <div key={key} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
                             <div className="flex items-center space-x-3">
                               <Icon className={`h-5 w-5 ${category.color}`} />
-                              <span className="text-muted-foreground">{category.title}</span>
+                              <span className="text-muted-foreground">{nomesDasCategorias[key] || category.title}</span>
                             </div>
                             <span className="text-foreground font-medium">
                               {value.toFixed(1)} kg CO₂
@@ -236,26 +270,34 @@ const Calculator = () => {
                       })}
                     </CardContent>
                   </Card>
-
-                  <Card className="professional-card">
-                    <CardHeader>
-                      <CardTitle className="text-foreground">Recomendações</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {result.recommendations.map((rec, index) => (
-                        <div key={index} className="flex items-start space-x-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
-                          <Leaf className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                          <p className="text-muted-foreground text-sm">{rec}</p>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
                 </motion.div>
               )}
             </div>
           </div>
         </div>
       </div>
+      
+      <AlertDialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center text-2xl">
+              <Sparkles className="mr-3 h-6 w-6 text-yellow-400" />
+              Dicas para Reduzir sua Pegada
+            </AlertDialogTitle>
+            <AlertDialogDescription className="pt-4 space-y-3">
+              {recommendations.map((rec, index) => (
+                <div key={index} className="flex items-start space-x-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <Leaf className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <p className="text-muted-foreground text-sm">{rec}</p>
+                </div>
+              ))}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>Entendido!</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

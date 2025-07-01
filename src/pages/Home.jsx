@@ -24,7 +24,7 @@ const Home = () => {
     },
     {
       icon: Globe,
-      title: 'Dados Globais',
+      title: 'Dados Da Comunidade',
       description: 'Compare seus resultados com dados agregados de toda a comunidade.'
     },
     {
@@ -66,7 +66,7 @@ const Home = () => {
                   </motion.div>
                   
                   <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight">
-                    Monitore sua{' '}
+                    Calcule sua{' '}
                     <span className="gradient-text">Pegada de Carbono</span>
                   </h1>
                   
