@@ -31,6 +31,13 @@ mongoose.connect(uri)
 const authRoutes = require('./routes/auth');
 const carbonRoutes = require('./routes/carbon');
 
+<<<<<<< HEAD
+=======
+// ROTA ADICIONADA: Responde à requisição na raiz da URL
+app.get('/', (req, res) => {
+  res.status(200).send('API do Carbono-Fácil está online e funcionando!');
+});
+>>>>>>> b574b2aa93a1d58d1b0d5e09b71482eb573b2ddf
 
 app.use('/api/auth', authRoutes);
 app.use('/api/carbon', carbonRoutes);
@@ -39,5 +46,5 @@ app.use('/api/feedback', require('./routes/feedback'));
 
 // --- Inicialização do Servidor ---
 app.listen(port, () => {
-    console.log(`🚀 Servidor rodando em http://localhost:${port}`);
+    console.log(`🚀 Servidor rodando na porta: ${port}`);
 });
